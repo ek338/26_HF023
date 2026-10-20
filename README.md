@@ -214,16 +214,20 @@ pdmAccumulator = (uint8_t)sum;
 ~~~text
 26_HF023/
 ├── README.md
-├── mega/                      # Arduino Mega 2560 — I²C JAM 명령 수신, 40 kHz AM/PDM 출력 제어
-└── speaker_identification/    # Raspberry Pi — 화자 등록, VAD, 화자 임베딩·유사도 판정, I²C JAM 명령 전송
+├── mega/
+│   └── jammer_controller.ino          # Arduino Mega 2560 — 40 kHz 캐리어 + 의사잡음 AM/PDM 출력 제어
+└── speaker_identification/
+    └── speaker_identification.py      # Raspberry Pi — 화자 등록, Threshold 보정, 실시간 화자 판별, JAM 명령 전송
 ~~~
 
-| 폴더 | 실행 환경 | 주요 내용 |
+| 파일 | 실행 환경 | 주요 내용 |
 | --- | --- | --- |
-| `mega/` | Arduino Mega 2560 (Arduino IDE) | I²C 수신, LFSR 잡음 생성, STE 기반 적응 이득, AM/PDM 변조, 타이머/PWM 출력 제어 |
-| `speaker_identification/` | Raspberry Pi (Python 3.x) | 화자 프로필 등록, HPF·VAD·리샘플링, Resemblyzer 임베딩, cosine similarity, 이중 임계값·Confirm·Hangover 상태 전이 |
+| `mega/jammer_controller.ino` | Arduino Mega 2560 (Arduino IDE) | Timer1 80 kHz 인터럽트로 D2/D3 위상 반전(40 kHz 캐리어), Timer3 8 kHz 인터럽트에서 16-bit LFSR 의사잡음 기반 PDM gating(평균 약 75%)으로 D4(PWM) 제어, D8(STBY)로 JMOD Enable/Disable, 시리얼 명령(`1` ON / `0` OFF / `S` 상태) |
+| `speaker_identification/speaker_identification.py` | Raspberry Pi (Python 3.x) | 메뉴 1: 3초×5회 화자 등록 및 프로필 생성 / 메뉴 2: 등록자 5회·타인 10회 테스트로 Balanced Accuracy 기반 Threshold 보정 / 메뉴 3: 80 Hz HPF·RMS/STE VAD, Resemblyzer 임베딩·cosine similarity, ON/OFF 이중 임계값·Gray Zone·2회 연속 Confirm·무음 약 2초 시 OFF, USB 시리얼로 `JAM_ON`/`JAM_OFF` 전송 |
 
-> 화자 등록에 사용한 음성 원본은 개인정보 보호를 위해 저장소에 업로드하지 않습니다.
+- Raspberry Pi 필요 라이브러리: `numpy`, `scipy`, `sounddevice`, `soundfile`, `librosa`, `resemblyzer`, `pyserial`
+
+> 실행 시 생성되는 `speaker_identification/voice_data/`(등록·테스트 녹음 파일, 화자 프로필, threshold)는 개인정보 보호를 위해 저장소에 업로드하지 않습니다.
 
 ---
 
