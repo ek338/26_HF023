@@ -222,7 +222,7 @@ pdmAccumulator = (uint8_t)sum;
 
 | 파일 | 실행 환경 | 주요 내용 |
 | --- | --- | --- |
-| `mega/jammer_controller.ino` | Arduino Mega 2560 (Arduino IDE) | Timer1 80 kHz 인터럽트로 D2/D3 위상 반전(40 kHz 캐리어), Timer3 8 kHz 인터럽트에서 16-bit LFSR 의사잡음 기반 PDM gating(평균 약 75%)으로 D4(PWM) 제어, D8(STBY)로 JMOD Enable/Disable, 시리얼 명령(`1` ON / `0` OFF / `S` 상태) |
+| `mega/jammer_controller.ino` | Arduino Mega 2560 (Arduino IDE) | Timer1 80 kHz 인터럽트로 D2/D3 위상 반전(40 kHz 캐리어), Timer3 8 kHz 인터럽트에서 16-bit LFSR 의사잡음 기반 PDM gating(평균 약 75%)으로 D4(PWM) 제어, D8(STBY)로 JMOD Enable/Disable, Raspberry Pi 시리얼 명령(`JAM_ON` / `JAM_OFF`) 수신, 시리얼 모니터 수동 명령(`1` ON / `0` OFF / `S` 상태) |
 | `speaker_identification/speaker_identification.py` | Raspberry Pi (Python 3.x) | 메뉴 1: 3초×5회 화자 등록 및 프로필 생성 / 메뉴 2: 등록자 5회·타인 10회 테스트로 Balanced Accuracy 기반 Threshold 보정 / 메뉴 3: 80 Hz HPF·RMS/STE VAD, Resemblyzer 임베딩·cosine similarity, ON/OFF 이중 임계값·Gray Zone·2회 연속 Confirm·무음 약 2초 시 OFF, USB 시리얼로 `JAM_ON`/`JAM_OFF` 전송 |
 
 - Raspberry Pi 필요 라이브러리: `numpy`, `scipy`, `sounddevice`, `soundfile`, `librosa`, `resemblyzer`, `pyserial`

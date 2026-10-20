@@ -20,6 +20,11 @@
 // Modulation     : Pseudo-random AM/PDM
 // Mod update     : 8 kHz
 // Average gating : 약 75%
+//
+// Control        : Raspberry Pi USB Serial (9600 bps)
+//                  "JAM_ON\n"  -> OUTPUT ON
+//                  "JAM_OFF\n" -> OUTPUT OFF
+//                  (시리얼 모니터 수동 명령 1 / 0 / S 도 사용 가능)
 // ======================================================
 
 
@@ -44,6 +49,22 @@ volatile uint16_t lfsr = 0xACE1u;
 
 // 8-bit PDM accumulator
 volatile uint8_t noiseAccumulator = 0;
+
+
+// ======================================================
+// Raspberry Pi 명령 수신 버퍼
+//
+// speaker_identification.py가 줄 단위로 전송
+//
+//   "JAM_ON\n"
+//   "JAM_OFF\n"
+// ======================================================
+
+#define CMD_BUFFER_SIZE  16
+
+char cmdBuffer[CMD_BUFFER_SIZE];
+
+uint8_t cmdLength = 0;
 
 
 // ======================================================
@@ -486,6 +507,72 @@ void stopOutput()
 
 
 // ======================================================
+// STATUS
+// ======================================================
+
+void printStatus()
+{
+  Serial.print(
+      "OUTPUT = "
+  );
+
+
+  if (outputEnabled)
+  {
+    Serial.println(
+        "ON"
+    );
+  }
+
+  else
+  {
+    Serial.println(
+        "OFF"
+    );
+  }
+
+
+  Serial.println(
+      "Carrier = 40 kHz"
+  );
+
+  Serial.println(
+      "AM/PDM update = 8 kHz"
+  );
+
+  Serial.println(
+      "Average gating ~= 75%"
+  );
+}
+
+
+// ======================================================
+// Raspberry Pi 명령 처리
+//
+// 줄 끝('\n' 또는 '\r')을 받으면 버퍼 내용을 비교
+// ======================================================
+
+void handleCommandLine()
+{
+  cmdBuffer[cmdLength] = '\0';
+
+
+  if (strcmp(cmdBuffer, "JAM_ON") == 0)
+  {
+    startOutput();
+  }
+
+  else if (strcmp(cmdBuffer, "JAM_OFF") == 0)
+  {
+    stopOutput();
+  }
+
+
+  cmdLength = 0;
+}
+
+
+// ======================================================
 // SETUP
 // ======================================================
 
@@ -599,6 +686,10 @@ void setup()
   );
 
   Serial.println(
+      "JAM_ON / JAM_OFF : Raspberry Pi"
+  );
+
+  Serial.println(
       "======================================"
   );
 }
@@ -610,73 +701,85 @@ void setup()
 
 void loop()
 {
-  if (Serial.available())
+  while (Serial.available())
   {
     char cmd =
         Serial.read();
 
 
     // ==================================================
-    // ON
+    // 줄 끝 -> Raspberry Pi 명령 처리
     // ==================================================
 
-    if (cmd == '1')
+    if (cmd == '\n' || cmd == '\r')
     {
-      startOutput();
+      if (cmdLength > 0)
+      {
+        handleCommandLine();
+      }
+
+      continue;
     }
 
 
     // ==================================================
-    // OFF
+    // 시리얼 모니터 수동 명령 (1 / 0 / S)
+    //
+    // 줄의 첫 글자일 때만 처리
+    // ("JAM_ON" 같은 문자열 중간 글자와 구분)
     // ==================================================
 
-    else if (cmd == '0')
+    if (cmdLength == 0)
     {
-      stopOutput();
+      // ON
+
+      if (cmd == '1')
+      {
+        startOutput();
+
+        continue;
+      }
+
+
+      // OFF
+
+      else if (cmd == '0')
+      {
+        stopOutput();
+
+        continue;
+      }
+
+
+      // STATUS
+
+      else if (
+        cmd == 'S'
+        ||
+        cmd == 's'
+      )
+      {
+        printStatus();
+
+        continue;
+      }
     }
 
 
     // ==================================================
-    // STATUS
+    // Raspberry Pi 명령 문자 누적
     // ==================================================
 
-    else if (
-      cmd == 'S'
-      ||
-      cmd == 's'
-    )
+    if (cmdLength < CMD_BUFFER_SIZE - 1)
     {
-      Serial.print(
-          "OUTPUT = "
-      );
+      cmdBuffer[cmdLength++] = cmd;
+    }
 
+    else
+    {
+      // 너무 긴 입력은 버림
 
-      if (outputEnabled)
-      {
-        Serial.println(
-            "ON"
-        );
-      }
-
-      else
-      {
-        Serial.println(
-            "OFF"
-        );
-      }
-
-
-      Serial.println(
-          "Carrier = 40 kHz"
-      );
-
-      Serial.println(
-          "AM/PDM update = 8 kHz"
-      );
-
-      Serial.println(
-          "Average gating ~= 75%"
-      );
+      cmdLength = 0;
     }
   }
 }
