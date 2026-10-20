@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 화자 등록 음성 원본 (개인정보 보호를 위해 업로드하지 않음)
+*.wav
